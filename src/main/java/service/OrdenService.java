@@ -27,6 +27,7 @@ public class OrdenService {
     public Orden registrarOrden(String clienteId, List<ProductoOrden> productos) {
 
         validarCliente(clienteId);
+        validarProductos(productos);
 
         double total = calcularTotal(productos);
 
@@ -50,6 +51,11 @@ public class OrdenService {
         }
     }
 
+    private void validarProductos(List<ProductoOrden> productos) {
+        if (productos == null || productos.isEmpty()) {
+            throw new IllegalArgumentException("La orden debe tener productos");
+        }
+    }
     private double calcularTotal(List<ProductoOrden> productos) {
         Set<String> ids = new HashSet<>();
         double total = 0;
