@@ -25,30 +25,12 @@ public class OrdenService {
     }
 
     public Orden registrarOrden(String clienteId, List<ProductoOrden> productos) {
-        if (!clienteRepository.existeCliente(clienteId)) {
-            throw new IllegalArgumentException("Cliente no existe");
-        }
-        if (!clienteRepository.clienteActivo(clienteId)) {
-            throw new IllegalArgumentException("Cliente inactivo");
-        }
 
-        Set<String> ids = new HashSet<>();
-        double total = 0;
+        validarCliente(clienteId);
 
-        for (ProductoOrden p : productos) {
-            if (p.cantidad() <= 0) {
-                throw new IllegalArgumentException("Cantidad inválida");
-            }
-            if (!ids.add(p.productoId())) {
-                throw new IllegalArgumentException("No se permiten productos duplicados");
-            }
-            if (!stockService.hayStock(p.productoId(), p.cantidad())) {
-                throw new IllegalStateException("Sin stock, orden cancelada");
-            }
-            total += p.cantidad() * p.precioUnitario();
-        }
+        double total = calcularTotal(productos);
 
-        if (total > 500) total *= 0.9;
+        total = aplicarDescuento(total);
 
         return new Orden(
                 codigoOrdenGenerator.siguienteCodigo(),
@@ -57,5 +39,50 @@ public class OrdenService {
                 productos,
                 total
         );
+    }
+
+    private void validarCliente(String clienteId) {
+        if (!clienteRepository.existeCliente(clienteId)) {
+            throw new IllegalArgumentException("Cliente no existe");
+        }
+        if (!clienteRepository.clienteActivo(clienteId)) {
+            throw new IllegalArgumentException("Cliente inactivo");
+        }
+    }
+
+    private double calcularTotal(List<ProductoOrden> productos) {
+        Set<String> ids = new HashSet<>();
+        double total = 0;
+
+        for (ProductoOrden p : productos) {
+
+            validarProducto(p, ids);
+
+            total += p.cantidad() * p.precioUnitario();
+        }
+
+        return total;
+    }
+
+    private void validarProducto(ProductoOrden p, Set<String> ids) {
+
+        if (p.cantidad() <= 0) {
+            throw new IllegalArgumentException("Cantidad inválida");
+        }
+
+        if (!ids.add(p.productoId())) {
+            throw new IllegalArgumentException("No se permiten productos duplicados");
+        }
+
+        if (!stockService.hayStock(p.productoId(), p.cantidad())) {
+            throw new IllegalStateException("Sin stock, orden cancelada");
+        }
+    }
+
+    private double aplicarDescuento(double total) {
+        if (total > 500) {
+            return total * 0.9;
+        }
+        return total;
     }
 }
