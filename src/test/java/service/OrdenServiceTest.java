@@ -12,6 +12,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 @ExtendWith(MockitoExtension.class)
 class OrdenServiceTest {
@@ -40,5 +41,31 @@ class OrdenServiceTest {
         assertEquals("OR-0001", orden.getCodigo());
         assertEquals(LocalDate.now(), orden.getFecha());
         assertEquals(540.0, orden.getTotalFinal());
+    }
+
+    @Test
+    void deberiaCancelarOrdenSiAlgunProductoNoTieneStock() {
+        ClienteRepository clienteRepository = mock(ClienteRepository.class);
+        StockService stockService = mock(StockService.class);
+        CodigoOrdenGenerator codigoGenerator = mock(CodigoOrdenGenerator.class);
+
+        when(clienteRepository.existeCliente("C1")).thenReturn(true);
+        when(clienteRepository.clienteActivo("C1")).thenReturn(true);
+        when(stockService.hayStock("P1", 1)).thenReturn(true);
+        when(stockService.hayStock("P2", 1)).thenReturn(false);
+
+        OrdenService service = new OrdenService(clienteRepository, stockService, codigoGenerator);
+
+        List<ProductoOrden> productos = List.of(
+                new ProductoOrden("P1", 1, 100.0),
+                new ProductoOrden("P2", 1, 80.0)
+        );
+
+        IllegalStateException ex = assertThrows(
+                IllegalStateException.class,
+                () -> service.registrarOrden("C1", productos)
+        );
+
+        assertEquals("Sin stock, orden cancelada", ex.getMessage());
     }
 }

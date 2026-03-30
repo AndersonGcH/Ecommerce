@@ -74,9 +74,6 @@ public class OrdenService {
             throw new IllegalArgumentException("No se permiten productos duplicados");
         }
 
-        if (!stockService.hayStock(p.productoId(), p.cantidad())) {
-            throw new IllegalStateException("Sin stock, orden cancelada");
-        }
     }
 
     private double aplicarDescuento(double total) {
